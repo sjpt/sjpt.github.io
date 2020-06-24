@@ -110,7 +110,7 @@ function funlistchange(v) {
     let sf = t.f.toString();
     sf = sf.replace('function(x,y,z) {', '');
     sf = sf.replace('return', 'v = ');
-    sf = sf.replaceAll(/([^\.\d])(\d+)([^\.\d])/g, '$1$2.$3');
+    sf = sf.replace(/([^\.\d])(\d+)([^\.\d])/g, '$1$2.$3');
     sf = sf.substring(0, sf.length-1);
     sf = sf.split('Math.').join('');
     sf = sf.trim();

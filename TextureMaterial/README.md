@@ -3,6 +3,8 @@
 
 This project provides a threeD texture based material for use in three.js. It derives from the work of Stephen Todd and William Latham with more recent contribution from Peter Todd. The code (in Pascal) was originally 'Evolutionary Art and Computers' (published 1992). This version has been used recently in various 'Organic Mutator' public exhibitions. It is primarily implemented in GLSL, orchestrated from Javascript.
 
+Sample at https://sjpt.github.io/TextureMaterial/texturetest.html
+
 ## usage
 Define a material `material = new TextureMaterial()` and use as other three.js materials. The mterial is effectively a subclass of `THREE.MeshPhysicalMaterial`
 

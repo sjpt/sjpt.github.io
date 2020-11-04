@@ -1,18 +1,17 @@
 'use strict';
 import {addToMain} from './graphicsboiler.js';
-import {makechainlines} from './pdbreader.js';
+import {makechainlines, pdbReader} from './pdbreader.js';
 export {
     centrerange, // for draw centre consistency
     spotsize,
     dataToMarkersGui,
     // particles, // for subclass pdbreader, and particles for photoshader
     XYZ,
-    stdcols, stdcol
+    stdcols, stdcol,
+    csvReader
 };
 // temporary below
-let filtergui;
-
-
+// let filtergui;
 
 
 const {THREE, addFileTypeHandler, E, X, col3} = window;
@@ -35,6 +34,7 @@ const spotsize = a => {
     if (X.current) X.current.spotsize(a);
     //if (X.plymaterial) X.plymaterial.size = a;
 }
+const filtergui = g => { if (X.current) X.current.filtergui(g); }
 const dataToMarkersGui = (a,b) => X.current.dataToMarkersGui(a,b);
 //const makefilterfun = a => current.makefilterfun(a);
 //const makecolourfun = a => current.makecolourfun(a);
@@ -46,6 +46,8 @@ const centrerange = new THREE.Vector3('unset');  // ranges for external use
 X.spotsize = spotsize;
 X.dataToMarkersGui = dataToMarkersGui;
 X.filtergui = filtergui;
+X.csvReader = csvReader;
+X.pdbReader = pdbReader;
 addFileTypeHandler('.csv', csvReader);
 addFileTypeHandler('.txt', csvReader);
 
@@ -371,3 +373,8 @@ setup(fid) {
     addToMain( this.particles, fid );
 }
 } // end class XYZ
+
+/* reminder to me
+http://localhost:8800/,,/xyz/xyz.html?startdata=/!C:/Users/Organic/Downloads/small_test_UMAP3A.csv
+http://localhost:8800/,,/xyz/xyz.html?startdata=https://files.rcsb.org/download/6Z9P.pdb
+*/

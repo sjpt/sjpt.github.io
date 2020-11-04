@@ -213,7 +213,8 @@ function chaindists(sc = 1) {
                 chj.close.push(i);
                 linegeom.vertices.push(chi.near);
                 linegeom.vertices.push(chj.near);
-                const col = cols[Math.floor(d)].clone();
+                const colx = cols[Math.floor(d)]
+                const col = colx ? colx.clone() : col3(0,1,0);
                 linegeom.colors.push(col);
                 linegeom.colors.push(col);
             }

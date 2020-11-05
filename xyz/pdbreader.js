@@ -56,15 +56,19 @@ function pdbReader(data, fid) {
     // push data to main graphics
     // maingroup.remove(rlines);
     myxyz.setvals(pdbdatas);  // will also do a genstats
-    chaindists();
+    myxyz.finalize(fid);
+    
+    dataToMarkersGui();
+    if (fid === 'data/4bcufullCA.pdb') {
+        chaindists();
 
-    //try {
-        dataToMarkersGui();
-    //} catch(e) {
-    //    dataToMarkers();
-    //}
+        //try {
+        //} catch(e) {
+        //    dataToMarkers();
+        //}
+        virusshow();
+    }
     document.title = '3dv: ' + fid;
-    virusshow();
 }
 // var vdbReader = pdbReader;  // so we can read vdb files with same function
 
@@ -78,8 +82,6 @@ function virusshow() {
     }
     dataToMarkersGui();
     if (!renderer.vr.getDevice()) orbcamera.position.z = 200;
-
-
 }
 
 /**

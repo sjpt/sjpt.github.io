@@ -215,7 +215,10 @@ csvReader(raw, fid) {
     if (!this.ranges) {
         this.ranges = this.genstats();  // only generate ranges for first input so all are consistent
     }
+    this.finalize(fid);
+}
 
+finalize(fid) {
     this.rebase('x');
     this.rebase('y');
     this.rebase('z');
@@ -375,6 +378,13 @@ setup(fid) {
 } // end class XYZ
 
 /* reminder to me
+nb 
 http://localhost:8800/,,/xyz/xyz.html?startdata=/!C:/Users/Organic/Downloads/small_test_UMAP3A.csv
 http://localhost:8800/,,/xyz/xyz.html?startdata=https://files.rcsb.org/download/6Z9P.pdb
+https://sjpt.github.io/xyz/xyz.html?startdata=data/4bcufullCA.pdb
+https://sjpt.github.io/xyz/xyz.html?startdata=data/small_test.csv
+https://sjpt.github.io/xyz/xyz?startdata=https://sjpt.github.io/xyz/data/small_test.csv
+
+http://localhost:8800/,,/xyz/xyz.html?startdata=/remote/https://userweb.molbiol.ox.ac.uk//public/staylor/cyto/Steve_test_UMAP3_cyto_xyz.txt
+
 */

@@ -1,11 +1,15 @@
 'use strict';
 import {showfirstdata} from './basic.js';
+window.lastModified.graphicsboiler = `Last modified: 2020/11/07 13:53:52
+`
+
 
 export {addToMain, framenum, makeCircle, renderer, fullcanvas,
     camera, usePhotoShader, orbcamera, outerscene};
 //import {refit} from './refit.js';
 const {THREE, Stats, E, log, X, col3, WEBVR} = window;
 X.scale = scale;
+X.init = init;
 
 
 //?if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
@@ -17,7 +21,7 @@ var camera, maingroup, outerscene, renderer,
 X.defaultDistance = 50;
 var autoClear = false;
 
-window.onload = init;
+// window.onload = init;  // do in html
 
 let i; // very odd, to check
 /** initial call to read data and set up graphics */
@@ -75,10 +79,12 @@ function init() {
     container.appendChild(canvas);
     canvas.id = 'canvas';
     canvas.style.position = 'fixed';
+    canvas.style.top = '0';
     canvas.onclick = () => document.activeElement.blur();  // so keys such as cursor keys don't force tabbing over the gui elements
 
     stats = new Stats();
     container.appendChild( stats.dom );
+    stats.dom.style.bottom = '0'; stats.dom.style.top = ''
 
     document.addEventListener( 'keydown', onDocumentKeyDown, false );
 
@@ -152,9 +158,9 @@ function onDocumentKeyDown(evt) {
 
 /** show the full canvas */
 function fullcanvas(full = E.info.style.display !== 'none' ) {
-    const s = E.info.style;
-    s.display = full ? 'none' : '';
-    canvas.style.top = full ? '0' : '';
+    E.info.style.display = full ? 'none' : '';
+    E.ack.style.display = E.info.style.display
+    // canvas.style.top = full ? '0' : '0';
     canvas.focus();
 }
 

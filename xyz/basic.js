@@ -1,7 +1,9 @@
-
 export {addFileTypeHandler, showfirstdata, posturiasync};
 const {killev, addFileTypeHandler, E, X} = window;  // killev from OrbitControls ???
+X.lastModified.basic = `Last modified: 2020/11/06 17:39:12
+`
 X.posturiasync = posturiasync;
+X.handlerForFid = handlerForFid;
 
 const queryVariables = {};
 /** get query variables from search string */
@@ -19,7 +21,7 @@ getQueryVariables();
 /** load and show the initial data, called from the graphics boilerplate code at startup  */
 function showfirstdata() {
     if (window.location.search === '?arch') {
-        window.addscript("../archaeology/archstart.js");
+        window.addscript("archstart.js");
         return;
     }
     const startcode = queryVariables.startcode;
@@ -37,7 +39,7 @@ document.ondrop = docdrop;
 
 
 /** post a uri and process callback  */
-function posturiasync(puri, callb='auto', data='' ) {
+function posturiasync(puri, callb='auto', data='') {
     const binary = puri.endsWith('.ply');
     if (callb === 'auto') callb = handlerForFid(puri);
     var req = new XMLHttpRequest();
@@ -45,7 +47,7 @@ function posturiasync(puri, callb='auto', data='' ) {
     if (binary) req.responseType = 'arraybuffer';
     req.setRequestHeader("Content-type", binary ? "application/octet-stream" : "text/plain;charset=UTF-8");
     req.send(data);
-    req.onload = function (oEvent) { 
+    req.onload = function () { 
         callb(binary ? req.response : req.responseText, puri);
     }   // eslint-disable-line no-unused-vars
     req.onerror = function (oEvent) { console.error('cannot load', puri, oEvent); }

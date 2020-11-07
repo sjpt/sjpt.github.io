@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<script>lastModified={}; lastModified.xyzhtml = `Last modified: 2020/11/07 11:44:49
+`</script>
 <html lang="en">
 	<head>
 		<title>Virus</title>
@@ -17,18 +19,35 @@
 			}
             #gui {
                 position: relative;
-                top: 60px;
+                top: 10px;
+                z-index: 100;
+                pointer-events: none;
+            }
+            #gui * {
+                pointer-events: all;
+            }
+            #msgbox {
+                pointer-events: none;
+            }
+            #ack {
                 z-index: 100;
             }
             #colourbox { width: 20%; }
         </style>
         <script>
-            window.onload = ()=>console.log('document loaded');
+            window.onload = ()=>{
+                console.log('document loaded');
+                window.lastmod.textContent = lastModified.xyzhtml;
+                init();
+            }; 
             document.addEventListener("DOMContentLoaded",()=>{console.log('DOMContentLoaded loaded')});
         </script>
 	</head>
 	<body>
-        <div id="info">
+        <span id="lastmod"></span>
+        <span style="text-align:center">Press 'Q' key to toggle help information</span>
+        <span id="ack" style="position: fixed; right: 0px"></span>
+        <div id="info" style="display:none">
             <p>On a small screen, scroll to the bottom to see the image.
             You can interact with the mouse: left button to rotate, centre button or wheel to zoom, right button to pan.
             <br>
@@ -59,7 +78,7 @@
         </div>
 
         <div id='container'>
-            <div id='gui'>
+                <div id='gui'>
                 <b>visible:</b><span id='visibles'></span>
                 <br>
                 <b>VR resolution, enter VR at chosen resolution (exit VR, or on Chrome restart page, to change res:</b>
@@ -133,3 +152,7 @@
 		<!-- <script src="js/Detector.js"></script> -->
 	</body>
 </html>
+<!-- 
+https://combinatronics.com/sjpt/xyzviewer/master/xyz.html
+https://gitcdn.link/cdn/sjpt/xyzviewer/master/xyz.html  (less dynamic)
+-->

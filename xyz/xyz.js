@@ -1,6 +1,9 @@
 'use strict';
 import {addToMain} from './graphicsboiler.js';
 import {makechainlines, pdbReader} from './pdbreader.js';
+window.lastModified.xyz = `Last modified: 2020/11/07 14:20:50
+`
+
 export {
     centrerange, // for draw centre consistency
     spotsize,
@@ -26,7 +29,7 @@ const stdcols = [
     col3(1,1,0),
     col3(1,1,1)
     ];
-const stdcol = n => stdcols[n%8];
+const stdcol = X.stdcol = n => stdcols[n%8];
 
 // bridge to access current members
 /** */
@@ -83,9 +86,9 @@ dataToMarkersGui(type) {
 /** load the data with given filter and colour functions if requred, and display as markers */
 dataToMarkers(pfilterfun, pcolourfun) {
     if (!this.particles) this.setup('dataToMarkers');  // for call from pdbReader
-    const filterfun = this.makefilterfun(pfilterfun);
-    const colourfun = this.makecolourfun(pcolourfun);
-    const geometry = new THREE.Geometry();
+    const filterfun = this.makefilterfun(pfilterfun, E.filterbox);
+    const colourfun = this.makecolourfun(pcolourfun, E.colourbox);
+    const geometry = this.geometry = new THREE.Geometry();
     geometry.vertices = [];
     geometry.colors = [];
     for (let i = 0; i < this.datas.length; i ++ ) {
@@ -115,7 +118,7 @@ dataToMarkers(pfilterfun, pcolourfun) {
  * If low and high are not given they are used as 1.5 standard deviations from the mean.
  * We may later add low and high colour values for greater flexibility.
  */
-makecolourfun(fn) {
+makecolourfun(fn, box) {
     if (typeof fn === 'function') return fn;
     if (fn === undefined || fn === '' || fn === 'random') return ()=>col3(Math.random(),Math.random(),Math.random());
     if (fn === 'choose') {
@@ -131,7 +134,7 @@ makecolourfun(fn) {
                 E.colourpick.value = '#' + cc.getHexString();
                 return ()=>cc;
             }
-            const f = this.makefilterfun(c);
+            const f = this.makefilterfun(c, box);
             //const col = f(datas[0]);  // test
             return f;
         } catch(e) {
@@ -165,18 +168,42 @@ makecolourfun(fn) {
 /** make a function for a filter
  * If the value is a string it is converted to a function, using d as the input data row.
  * so a valid string could be 'd.x > 17'.
+ * Also allows just x > 17
+ * Can return a string if the function is not valid, giving reason for failure
  */
-makefilterfun(filt) {
-    if (typeof filt === 'function') return filt;
+makefilterfun(filt, box) {
     if (!filt) return undefined;
-    if (typeof filt === 'string') {
-        for (let fn in this.ranges)
+    E.filterr.innerHTML = '';
+    let filtfun;
+    if (typeof filt === 'function')
+        filtfun = filt;
+    else if (typeof filt === 'string') {
+        for (let fn in this.ranges) // replace known field fn with d.fn
             // filt = filt.split(fn).join('d.' + fn);
             filt = filt.replace( new RegExp('\\b' + fn + '\\b', 'g'), 'd.' + fn);
         filt = filt.split('.d.').join('.');  // so things like ranges.x.mean will get correct
-        const filtfun = new Function('d', 'return (' + filt + ')');
-        return filtfun;
+        try {
+            filtfun = new Function('d', 'return (' + filt + ')');
+        } catch (e) {
+            E.filterr.innerHTML = filt + '<br>invalid function: ' + e.message;
+            if (box) box.style.background='#ffd0d0'
+            return undefined;
+        }
+    } else {
+        return undefined;
     }
+
+    try {
+        // eslint-disable-next-line no-unused-vars
+        const r = filtfun(this.datas[0]);
+    } catch(e) {
+        E.filterr.innerHTML = filt + '<br>function throws exception: ' + e.message;
+        if (box) box.style.background='#d0d0ff'
+        return undefined;
+    }
+    if (box) box.style.background='#d0ffd0'
+    E.filterr.innerHTML = filt + '<br>OK';
+    return filtfun;
 }
 
 
@@ -274,20 +301,21 @@ filtergui(evt) {
     const ff = box.value;
     try {
         // const f = new Function('d', 'return ' + ff);
-        box.style.background='#d0ffd0';
-        errbox.textContent = 'ctrl-enter to apply filter';
+        // box.style.background='#d0ffd0';
+        errbox.innerHTML = 'ctrl-enter to apply filter';
         if (evt.keyCode === 13) {
+            filtergui.last = filtergui.last || '';
             filtergui.lastn = this.dataToMarkersGui();
-            filtergui.last = ff;
-        }
-        if (ff.trim() === filtergui.last.trim()) {
-            box.style.background='#ffffff';
-            errbox.textContent = 'filter applied: #points=' + filtergui.lastn;
-            return;
+            if (ff.trim() === filtergui.last.trim()) {
+                filtergui.last = ff;
+                box.style.background='#ffffff';
+                errbox.innerHTML = 'filter applied: #points=' + filtergui.lastn;
+                return;
+            }
         }
     } catch (e) {
-        box.style.background='#ffd0d0';
-        errbox.textContent = e.message;
+        box.style.background='#ffffd0';
+        errbox.innerHTML = e.message;
     }
 }
 
@@ -356,7 +384,7 @@ setup(fid) {
     // 3: load from base4, seems to work always, but not very convenient
     // 4: leave undefined, we see squares of approriate size on screen
     let sprite;
-    if (location.href.startsWith('file:') || navigator.userAgent.indexOf("Edge") > -1) {
+    if (location.href.startsWith('file:') || location.host.startsWith('combinatronics.com') || navigator.userAgent.indexOf("Edge") > -1) {
         // Chrome is too fussy with file: loading, so use this instead
         // the data was converted from circle.png using https://www.base64-image.de/
         // Edge did not assume sprite subdirectory authenticated even when higher level one OK
@@ -367,15 +395,30 @@ setup(fid) {
         image.onload = function() { sprite.needsUpdate = true; };
     } else {
         var textureLoader = new THREE.TextureLoader();
-        sprite = textureLoader.load( "sprites/circle.png" );
+        sprite = textureLoader.load( "sprites/circle.png", spr => {
+            this.material.map = spr;
+            this.material.needsUpdate = true;
+        });
     }
     const size = 0.3;
-    this.material = new THREE.PointsMaterial( { size: size, map: sprite, /**blending: THREE.AdditiveBlending, **/ depthTest: true, transparent : true, alphaTest: 0.3, vertexColors: THREE.VertexColors } );
+    this.material = new THREE.PointsMaterial( { size: size, map: sprite, /** blending: THREE.AdditiveBlending, **/ depthTest: true, transparent : true, alphaTest: 0.3, vertexColors: THREE.VertexColors } );
     this.particles = new THREE.Points(new THREE.Geometry(), this.material);
     this.particles.xyz = this;
     addToMain( this.particles, fid );
 }
 } // end class XYZ
+
+// helpers, global
+function enumI(d,f) {
+    if (f.substring(0,2) === 'd.') f=f.substring(2); 
+    return X.current.ranges[f].valueSet[d[f]];
+}
+function enumF(d,f) {
+    if (f.substring(0,2) === 'd.') f=f.substring(2); 
+    const vs = X.current.ranges[f].valueSet;
+    return vs[d[f]] / Object.keys(vs).length;
+}
+X.enumI = enumI; X.enumF = enumF; 
 
 /* reminder to me
 nb 
@@ -386,5 +429,8 @@ https://sjpt.github.io/xyz/xyz.html?startdata=data/small_test.csv
 https://sjpt.github.io/xyz/xyz?startdata=https://sjpt.github.io/xyz/data/small_test.csv
 
 http://localhost:8800/,,/xyz/xyz.html?startdata=/remote/https://userweb.molbiol.ox.ac.uk//public/staylor/cyto/Steve_test_UMAP3_cyto_xyz.txt
+
+also
+https://gitcdn.link/cdn/sjpt/xyzviewer/master/xyz.html
 
 */

@@ -52,7 +52,7 @@ function touch(event) {
         if (s.fontSize) {
             s.fontSize = ''; s.transform=''; s.transformOrigin=''
         } else {
-            s.fontSize = '40%'; s.transform='scale(3)'; s.transformOrigin='top left'
+            s.fontSize = '40%'; s.transform='scale(6)'; s.transformOrigin='top left'
         }
     }
 }

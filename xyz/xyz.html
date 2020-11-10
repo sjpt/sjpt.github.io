@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<script>lastModified={}; lastModified.xyzhtml = `Last modified: 2020/11/10 15:42:58
+<script>lastModified={}; lastModified.xyzhtml = `Last modified: 2020/11/10 16:42:50
 `</script>
 <html lang="en">
 	<head>
@@ -33,6 +33,8 @@
                 z-index: 100;
             }
             #colourbox { width: 20%; }
+
+            #bigspeech { width: 10%; height: 10%; bottom: 0; right:0; position: fixed; }
 
             .help, .helpabove {
                 display: none;  /* overridden on :hover on previous element */
@@ -117,6 +119,7 @@
                     <input type="checkbox" id="speech" onchange="OrganicSpeech.isRunning=this.checked"/>
                 </span>
                 <span class="help" id="speechhelp">check for speech input</span>
+                <button id="bigspeech" value="speech" onclick="OrganicSpeech.isRunning ^= true">speech</button>
                 <br>
                 <b>visible: </b>
                 <span id='visibles'></span>

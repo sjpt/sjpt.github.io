@@ -50,9 +50,9 @@ function touch(event) {
     if (event.touches.length >= 4) {
         const s = window.gui.style;
         if (s.fontSize) {
-            s.fontSize = '40%'; s.transform='scale(3)'; s.transformOrigin='top left'
-        } else {
             s.fontSize = ''; s.transform=''; s.transformOrigin=''
+        } else {
+            s.fontSize = '40%'; s.transform='scale(3)'; s.transformOrigin='top left'
         }
     }
 }

@@ -1,5 +1,5 @@
 'use strict';
-window.lastModified.tdata = `Last modified: 2021/03/11 15:28:37
+window.lastModified.tdata = `Last modified: 2021/03/11 12:33:25
 `; console.log('>>>>xyz.js');
 
 //?? import {pdbReader} from './pdbreader.js';
@@ -33,10 +33,6 @@ csvReader.rawhandler = true;
 class TData {
 
 static tdatas = {};
-static tellUpdateInterval = 10000;    // inform update insterval during long load
-static firstUpdate = 10000;
-static graphicsUpdateInterval = 250000;
-
 // reminder, useful regexp for wrongly used _ fields:  (?<![this|me])\._
 
 /**
@@ -65,6 +61,9 @@ constructor(data, fid) {
     this._colnstrs = [];    // number of string value instances in each column
     this._colnnull = [];    // number of null string instances in each column
     this._colnnum = [];     // number of numeric values in each column
+    this.tellUpdateInterval = 10000;    // inform update insterval during long load
+    this.firstUpdate = 10000;
+    this.graphicsUpdateInterval = 250000;
     TData.tdatas[fid] = this;
 
     if (!data) return;  // called from pdbReader
@@ -374,14 +373,12 @@ async csvReader(raw, fid) {
             }
             const rowa = row.split(sep);    // rowa row as array
             me.addRow(rowa);
-            if (me.n % TData.tellUpdateInterval === 0) {
+            if (me.n % me.tellUpdateInterval === 0) {
                 const dt = ((Date.now() - st)/1000).toFixed();
                 E.msgbox.innerHTML = `reading file ${fid}, line ${me.n}, bytes ${bytesProcessedSoFar} of ${length}, ${(bytesProcessedSoFar/length*100).toFixed()}%, ${dt} secs`;
             }
-            if (me.n % TData.graphicsUpdateInterval === 0 || me.n === TData.firstUpdate) {
-                log('reading', E.msgbox.innerHTML);
+            if (me.n % me.graphicsUpdateInterval === 0 || me.n === me.firstUpdate)
                 me.finalize(fid, true); // needs some but NOT all
-            }
         }
 
         if (raw instanceof File) {
@@ -722,14 +719,7 @@ valC(f, i) {
 makeProxy() {
     const p = this.pvals = new Array(this.n);
     for (let i=0; i < this.n; i++) {
-        p[i] = new Proxy(this, {
-            /**
-             * @param {*} targ 
-             * @param {string} prop 
-             * @returns 
-             */
-            get: (targ, prop) => targ.val(prop, i)
-        });
+        p[i] = new Proxy(this, {get: (targ, prop) => targ.val(prop, i)});
     }
     return p;
 }

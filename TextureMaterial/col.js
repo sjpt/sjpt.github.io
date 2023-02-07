@@ -164,7 +164,7 @@ COL.setx = function setx(list, low, high) {
     //if (COL.get('red1', 29) !== kkk) debugger
     if (list.notgenes)
         COL.genes2col();   // overwrite what we have just done with gene values
-    else
+    else if (COL.col2genes)
         COL.col2genes();    // make sure gene values are updated
 } // function setx
 
@@ -266,7 +266,8 @@ COL.baseseed = 99;
 COL.prand = function(colnum, prop, baseseed = COL.baseseed) {
     if (colnum === undefined || prop === undefined)
         console.error('bad call to COL.prand');
-    let seed = (colnum+7) * 37 + (prop.hashCode()) + baseseed;
+    const propseed = prop.split('').reduce((c,v,i) => c += v.charCodeAt(0) * i, 0)
+    let seed = (colnum+7) * 37 + propseed + baseseed;
     let t = seed += 0x6D2B79F5;
     t = Math.imul(t ^ t >>> 15, t | 1);
     t ^= t + Math.imul(t ^ t >>> 7, t | 61);

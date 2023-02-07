@@ -120,11 +120,11 @@ uniform float trotateInside;
 vec4 xcol = vec4(0.,0.,0.,0.);  // extra colour, may be set in various places including tranrule or for debug
 
 float colourid = -1.; // -COLNUM;
-float g_hueshift = 0.; // gene(g_hueshift, 0, 0, 1, 0.1, 0.1, texturex, frozen) //global colour shift to rotate colour scheme
-float pohnoisek = 0.5;
-float pohnoisen = 3.0;
+// ? done by gene float g_hueshift = 0.; // gene(g_hueshift, 0, 0, 1, 0.1, 0.1, texturex, frozen) //global colour shift to rotate colour scheme
+// ? done by gene float pohnoisek = 0.5;
+// ? done by gene float pohnoisen = 3.0;
 
-#define gene(name, value, min, max, step, delta, class, free)
+#define gene(name, value, min, max, step, delta, class, free) float name = float(value);
 #define genet(name, value, min, max, step, delta, class, free)
 
 `

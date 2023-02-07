@@ -1,7 +1,7 @@
 import {} from './noiseGLSL.fs.js';
 import {} from './pohnoise.fs.js';
 
-window.adduniform('g_hueshift', 0, 'f', 'gtex');
+// window.adduniform('g_hueshift', 0, 'f', 'gtex');
 
 window.THREE.ShaderChunk.O_texture = /*glsl*/`
 #ifndef TEXTUREDEFINED

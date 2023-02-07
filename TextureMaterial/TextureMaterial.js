@@ -12,6 +12,7 @@ function marchtexture(str, uniforms) {
     COL.uniforms = uniforms;
     uniforms.colbuff = {value: COL.buff};
     uniforms.trotateInside = {value: 0};
+    uniforms.noisetype = {value: 1};       // 0 none, 1 Perlin, 2 poh, 3 winsom bandpass
 
     let text = marchtexture.defs + '\n#include <O_texture>\n'
 
@@ -95,9 +96,6 @@ marchtexture.defs = `
 
 #define virtual         // used to flag some methods as overridable
 
-#define RAND true
-//#define PERLIN true
-#define POHNOISE true
 //#define FLUORESC true
 #define BUMP true
 

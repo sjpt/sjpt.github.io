@@ -1,7 +1,8 @@
 import {} from './noiseGLSL.fs.js';
 import {} from './pohnoise.fs.js';
 
-// window.adduniform('g_hueshift', 0, 'f', 'gtex');
+if (window.adduniform) window.adduniform('g_hueshift', 0, 'f', 'gtex'); // for Organic
+if (window.addgene) window.addgene('noisetype', 1, 0, 3, 1, 1, 'noise type, 0 none, 1 Perlin, 2 poh, 3 winsom bandpass', 'gtex', 'frozen')
 
 window.THREE.ShaderChunk.O_texture = /*glsl*/`
 #ifndef TEXTUREDEFINED
@@ -16,24 +17,6 @@ ${window.THREE.ShaderChunk.O_pohnoise}
 // for lookup based wincat
 //uniform sampler2D wincattext;
 
-// maybe silly values taken from Evolutionary Art and Computers, p203
-const vec3 k1 = vec3(0.99, 0.89, 0.79);
-const vec3 k2 = vec3(0.69, -0.59, 0.49);
-const vec3 k3 = vec3(1.99, 1.89, -1.79);
-const vec3 k4 = vec3(1.29, -1.59, -1.49);
-
-// TODO prepare iii for real 4d
-//const float iii = 0.;
-const vec3 v1 = vec3(1.,0.,0.);
-const vec3 v2 = vec3(0.,1.,0.);
-const vec3 v3 = vec3(0.,0.,1.);
-const vec3 v4 = vec3(0.,k1.y,k1.z);
-const vec3 v5 = vec3(0.,k2.y,-k2.z);
-const vec3 v6 = vec3(k1.x,0.,k3.z);
-const vec3 v7 = vec3(k2.x,0.,-k4.z);
-const vec3 v8 = vec3(k3.x,k3.y,0.);
-const vec3 v9 = vec3(k4.x,-k4.y,0.);
-const vec3 v10 = vec3(1.,1.,1.);
 
 vec4 colpos = vec4(-999,-999,-999,-999);   // position used in colour work; initialization to prevent warning messages
 
@@ -144,6 +127,8 @@ gene(g_huefixwidth, 1, 0, 1, 0.01, 0.01, texturex, frozen) // range around fixed
 // gene(g_hueconcentrate, 1, 0, 1, 0.1, 0.01, texturex, frozen) // concentrates hue by moving to 1/6 ponts
 gene(g_huepunch, 1, 0, 5, 0.1, 0.1, texturex, frozen)           // applies power to exaggerate hue, similar to increased saturation
 gene(g_huesat, 0, 0, 1, 0.1, 0.01, texturex, frozen)            // moves saturation towards full
+// not gene, as standalone TextureMaterial fixes genes
+uniform float noisetype;       // noise type, 0 none, 1 Perlin, 2 poh, 3 winsom bandpass
 
 
 gene(colSaturation, 1, 0, 10, 0.1, 0.01, texturex, frozen)   // control overall saturation, via power
@@ -177,7 +162,7 @@ const float bumpclamp = 0.5;     // clamp max effect of bumpmap bumps,  not gene
 //?ene(useoy, 0,0,2, u, 0.01, texture, frozen) // proportion of original y
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/** return texture based on single float v, result range -1..1 */
+/** return 1d texture based on single float v, result range -1..1, pseudo-bandpass */
 float w(float i, float v) {
 	i *= 0.1;  // debug: to find issues with w4 ~ texrepeat turned out to be what we wanted
     i += 2.;
@@ -201,23 +186,43 @@ float wnot(float i, float v) { return v; }  // debug: for testing changes
 /** get texture value for given position */
 float textval(vec3 texpos, float texr) {
 float r;
-#ifndef RAND
+if (noisetype == 0.) {          // none
     float q = texpos.z * 0.01;
     r = q - floor(q);
-#elif (defined(PERLIN))
+} else if (noisetype == 1.) { // Perlin
     r = snoise(texr*texpos.xyz);
-#elif (defined(POHNOISE))
+} else if (noisetype == 2.) {   // POH
     r = pohnoise((2.*texr)*texpos.xyz);
     return r;  // do not fall through to the renormalization
-#else
-    float v1 = dot(v10, vec3(
+} else {  // simplified winsom bandpass style, see 'Evolutionary Art and Computers'
+	// maybe silly values taken from Evolutionary Art and Computers, p203
+	const vec3 k1 = vec3(0.99, 0.89, 0.79);
+	const vec3 k2 = vec3(0.69, -0.59, 0.49);
+	const vec3 k3 = vec3(1.99, 1.89, -1.79);
+	const vec3 k4 = vec3(1.29, -1.59, -1.49);
+
+	// TODO prepare iii for real 4d
+	//const float iii = 0.;
+	const vec3 v1 = vec3(1.,0.,0.);
+	const vec3 v2 = vec3(0.,1.,0.);
+	const vec3 v3 = vec3(0.,0.,1.);
+	const vec3 v4 = vec3(0.,k1.y,k1.z);
+	const vec3 v5 = vec3(0.,k2.y,-k2.z);
+	const vec3 v6 = vec3(k1.x,0.,k3.z);
+	const vec3 v7 = vec3(k2.x,0.,-k4.z);
+	const vec3 v8 = vec3(k3.x,k3.y,0.);
+	const vec3 v9 = vec3(k4.x,-k4.y,0.);
+	const vec3 v10 = vec3(1.,1.,1.);
+
+
+    float vv1 = dot(v10, vec3(
     w(1., dot(v1, texpos) + wob * (w(4., dot(v4,texpos)) + w(5., dot(v5,texpos)))),
     w(2., dot(v2, texpos) + wob * (w(6., dot(v6,texpos)) + w(7., dot(v7,texpos)))),
     w(3., dot(v3, texpos) + wob * (w(8., dot(v8,texpos)) + w(9., dot(v9,texpos))))
     ));
-    float v2 = w(i10, texr * v1);
-    r = mix(v1, v2, texfinal);
-#endif
+    float vv2 = w(i10, texr * vv1);
+    r = mix(vv1, vv2, texfinal);
+}    // Winsom noise
     return r * 0.5 + 0.5;
 }
 

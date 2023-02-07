@@ -1,11 +1,15 @@
 import {} from './noiseGLSL.fs.js';
 import {} from './pohnoise.fs.js';
 
+window.adduniform('g_hueshift', 0, 'f', 'gtex');
+
 window.THREE.ShaderChunk.O_texture = /*glsl*/`
 #ifndef TEXTUREDEFINED
 #define TEXTUREDEFINED
-#include <O_noiseGLSL>
-#include <O_pohnoise>
+// # include <O_noiseGLSL>
+// # include <O_pohnoise>
+${window.THREE.ShaderChunk.O_noiseGLSL}
+${window.THREE.ShaderChunk.O_pohnoise}
 
 // for alternative perlin
 //# include noise2.glsl;
@@ -41,21 +45,6 @@ struct Colsurf {
 	vec4 fluoresc;  // floorescH/S/V,  iridescence
 } fff;
 
-Colsurf colsurf(in vec4 col, in vec4 surftype, in vec4 fluoresc) {
-    Colsurf r;
-    r.col = col;
-    r.surftype = surftype;
-	r.fluoresc = fluoresc;
-    return r;
-}
-
-Colsurf mixx(in Colsurf a, in Colsurf b, in float p) {
-    Colsurf r;
-    r.col = mix(a.col, b.col, p);
-    r.surftype = mix(a.surftype, b.surftype, p);
-	r.fluoresc = mix(a.fluoresc, b.fluoresc, p);
-    return r;
-}
 
 //const float time = 0.;  // might want to use it later
 // animation function, multiplier, range 0..1
@@ -64,6 +53,7 @@ Colsurf mixx(in Colsurf a, in Colsurf b, in float p) {
 //}
 
 // NOTE groups of 4 and ordering significant below
+// ??? Or are the groups of 4 defined as in COL.names?
 genet(red1, 1, 0, 1, u, 0.01, texture, frozen)  // red 1
 genet(green1, 0, 0, 1, u, 0.01, texture, frozen)  // green 1
 genet(blue1, 0, 0, 1, u, 0.01, texture, frozen)  // blue 1
@@ -94,19 +84,19 @@ const float i10 = 10.; //geneno(i10, 10., 0, 30, u, 0.1, texture, frozen)  // de
 genet(texrepeat, 1., 0.1, 2, u, 0.1, texture, free)  // texture repeat rate within pattern //brussels changed range
 genet(texfinal, 1., 0.,1., u, 0.1, texture, frozen)  // control final lookup
 genet(texfract3d, 1., 0.,1., u, 0.1, texture, frozen)  // control whether texture based n texpos or grid opos final lookup
-
-
 genet(texalong, 0, 0,20, 2, 0.2, texture, frozen)  // texture vary along shape
+
 genet(texaround, 0, 0,20, 2, 0.2, texture, frozen)  // texture scale around shape
 genet(texribs, 0, 0,20, 2, 0.2, texture, frozen)  // texture scale along ribs
 genet(texalong1, 0, 0,20, 2, 0.2, texture, frozen)  // texture vary along shape
 genet(texaround1, 0, 0,20, 2, 0.2, texture, frozen)  // texture scale around shape
+
 genet(texribs1, 0, 0,20, 2, 0.2, texture, frozen)  // texture scale along ribs
 genet(texalong2, 0, 0,20, 2, 0.2, texture, frozen)  // texture vary along shape
 genet(texaround2, 0, 0,20, 2, 0.2, texture, frozen)  // texture scale around shape
 genet(texribs2, 0, 0,20, 2, 0.2, texture, frozen)  // texture scale along ribs
-genet(texdiv, 3, 0,10, 0.1, 0.01, texture, frozen)  // texture divisor
 
+genet(texdiv, 3, 0,10, 0.1, 0.01, texture, frozen)  // texture divisor
 genet(wob, 1, 0, 5, u, 0.01, texture, frozen)  // 'wobble' to apply to texture
 genet(bumpscale, 20, 2, 50, u, 0.01, texture, frozen)  // scale of bumpmap bumps
 genet(bumpstrength, 1, 0, 1, u, 0.01, texture, frozen)  // strength of bumpmap bumps
@@ -145,7 +135,36 @@ genet(iridescence3, 0.1, -0.5, 0.5, 0.01, 0.01, texture, free) // amount to modu
 genet(tex2dxstretch, 1, 0, 1000, 1, 10, texture, free) // amount to stretch 2d textures in x (along)
 genet(tex2dystretch, 1, 0, 100, 1, 10, texture, free) // amount to stretch 2d textures in y (around)
 
-gene(g_hueshift, 0, 0, 1, 0.1, 0.1, texturex, frozen) //global colour shift to rotate colour scheme
+// gene(g_hueshift, 0, 0, 1, 0.1, 0.1, texturex, frozen) //global colour shift to rotate colour scheme; if any rgb component of a colour is >1 hueshift is not applied
+uniform float g_hueshift;   // uniform is more hidden from end user, set by colour cycle
+gene(g_huefix, 0, 0, 1, 0.01, 0.01, texturex, frozen) //fixed hue
+gene(g_huefixwidth, 1, 0, 1, 0.01, 0.01, texturex, frozen) // range around fixed hue
+// gene(g_hueequalize, 1, 0, 1, 0.01, 0.01, texturex, frozen)   // equalize hues, 0 no equalization, 1 full
+// gene(g_huescurve, 1, 0, 1, 0.01, 0.01, texturex, frozen)     // applies scurve to modify hues, makes colour cycle less irregular
+// gene(g_hueconcentrate, 1, 0, 1, 0.1, 0.01, texturex, frozen) // concentrates hue by moving to 1/6 ponts
+gene(g_huepunch, 1, 0, 5, 0.1, 0.1, texturex, frozen)           // applies power to exaggerate hue, similar to increased saturation
+gene(g_huesat, 0, 0, 1, 0.1, 0.01, texturex, frozen)            // moves saturation towards full
+
+
+gene(colSaturation, 1, 0, 10, 0.1, 0.01, texturex, frozen)   // control overall saturation, via power
+gene(colBrightness, 1, 0,4, 0.1, 0.01, texturex, frozen)   // control overall brightness
+
+Colsurf colsurf(in vec4 col, in vec4 surftype, in vec4 fluoresc) {
+    Colsurf r;
+    r.col.rgb = ((colSaturation == 1.) ? col.rgb : pow(col.rgb, vec3(colSaturation))) * colBrightness;
+    r.col.w = col.w;
+    r.surftype = surftype;
+	r.fluoresc = fluoresc;
+    return r;
+}
+
+Colsurf mixx(in Colsurf a, in Colsurf b, in float p) {
+    Colsurf r;
+    r.col = mix(a.col, b.col, p);
+    r.surftype = mix(a.surftype, b.surftype, p);
+	r.fluoresc = mix(a.fluoresc, b.fluoresc, p);
+    return r;
+}
 
 
 // ge ne (hsvprop, 1, 0., 1., 0.1, 0.1, gtex, frozen)  // proportion of hsv to use
@@ -265,7 +284,7 @@ vec3 hsv2rgb(in vec3 c) {
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
     vec3 pp = c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-    return clamp(pp, 0.0, 1.0);  // added sjpt 30 July 2015, can probably remove other clamp???
+    return clamp(pp, 0.0, c.z);  // added sjpt 30 July 2015, max changed to 1=>c.z March 2021 can probably remove other clamp???
 }
 vec3 rgb2hsv(in vec3 c) {
     vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -307,9 +326,11 @@ Colsurf standardTexcol(in vec3 texpos, float colourid, bool realLookup) {
     NONU(if (band1 > 100.) return col1;)
     NONU(if (band2 > 100.) return col2;)
     NONU(if (band3 > 100.) return col3;)
-    float bb = band1+band2+band3+2.*bandbetween;
+    float lbandbetween = bandbetween;
+    float bb = band1 + band2 + band3 + 2.*lbandbetween;
+    if (bb == 0.) {lbandbetween = 1.; bb = 2.;}   // allows for all 0, may be odd if some -ve that balance out
     float ibb = 1./bb;
-    float tbbb = bandbetween * ibb;
+    float tbbb = lbandbetween * ibb;
     // bb1s = 0
     float bb1e = band1 * ibb;              // end of band 1 in range 0..1
     float bb2s = bb1e + tbbb;  // start of band2
@@ -373,10 +394,20 @@ Colsurf standardTexcol(in vec3 texpos) {
     return standardTexcol(texpos, colourid, false);
 }
 
+
+float hueshift(float hi, float shifttot) {
+    // apply shifttot = iridenscence and hue shift (no shift if any rgb > 1)
+    float ho = hi + shifttot;
+    if (g_huefixwidth != 1.) {
+        float hd = mod(ho - g_huefix + 1.5, 1.) - 0.5;    // hd centred at 0 for g_huefix
+        ho = hd * g_huefixwidth + g_huefix;
+    }
+    ho = mod(mod(ho, 1.) + 2., 1.);
+    return ho;
+}
+
 /** return the full surface at a point, based on texture etc */
 virtual Colsurf iridescentTexcol(in vec3 texpos, in vec3 viewDir, in vec3 normal) {
-	Colsurf r = standardTexcol(texpos);
-    vec3 c = rgb2hsv(r.col.rgb);
 // to explore again later, mutate in hsv space
 // initial experiments gave worse results than mutate in rgb, sjpt March 2015
 //	vec3 c = mix(rgb2hsv(r.col.rgb), r.col.rgb, hsvprop);
@@ -384,14 +415,30 @@ virtual Colsurf iridescentTexcol(in vec3 texpos, in vec3 viewDir, in vec3 normal
 //c.g = sqrt(c.g);
 //c.g=1.;
 //c=vec3(1.,1.,1.);
-	float iridescence = r.fluoresc.a;
-	float f = iridescence * (1.-dot(viewDir, normal)) + g_hueshift;
-	c.x += f;				// shift hue of base colour
-	r.fluoresc.x += f;		// and of fluroescent
-	c.x = mod(mod(c.x, 1.) + 1., 1.);
-	r.fluoresc.x = mod(mod(r.fluoresc.x, 1.) + 1., 1.);
+    Colsurf r = standardTexcol(texpos);
+    float iridescence = r.fluoresc.a;
 
-	r.col.rgb = hsv2rgb(c);	// and convert back to rgb
+    if (iridescence != 0. || g_hueshift != 0. || g_huefixwidth != 1. || g_huesat != 0.) { // } || g_hueconcentrate != 0.) {
+        float iridescencex = iridescence * (1.-dot(viewDir, normal));   // shift due to iridescence
+        // float shiftx = max3(r.col.rgb) > 1. ? 0. : g_hueshift;          // shift do to g_hueshift (typically time based)
+        // todo, decide different condional for no shift on particular colour
+        float shiftx = g_hueshift;          // shift do to g_hueshift (typically time based)
+        float shifttot = iridescencex + shiftx;                         // sift to use
+
+        vec3 c = rgb2hsv(r.col.rgb);    // main colour is rgb, so need to convert
+        c.x = hueshift(c.x, shifttot);
+        // below to concentrate hues at 0, 1/6, 2/6 etc; not very helpful
+        // float h6 = c.x * 6.;
+        // float rh6 = floor(h6 + 0.5);
+        // c.x = mix(h6, rh6, g_hueconcentrate) / 6.;
+        if (g_huesat != 0.) c.y = mix(c.y, 1., g_huesat);
+        r.col.rgb = hsv2rgb(c);	        // and convert back to rgb
+        r.fluoresc.x = hueshift(r.fluoresc.x, shifttot);  // fluoresc is already hsv
+    }
+    // a couple of experiments equalizing hue curve, not really helpful
+    // if (g_hueequalize != 0.) r.col.rgb = mix(r.col.rgb, r.col.rgb*r.col.rgb / max3(r.col.rgb), g_hueequalize);
+    // if (g_huescurve != 0. && max3(r.col.rgb) != 0.) r.col.rgb = mix(r.col.rgb, r.col.rgb * scurvep(r.col.rgb / max3(r.col.rgb)), g_huescurve);
+    if (g_huepunch != 0. && max3(r.col.rgb) != 0.) r.col.rgb *= pow(abs(r.col.rgb) / max3(abs(r.col.rgb)), vec3(g_huepunch));
     r.col += xcol;			// add in special effects colour, usually 0 or for debug, can be set in horn definition
 
     float subband = r.surftype.z;

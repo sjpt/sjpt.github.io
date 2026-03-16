@@ -1,7 +1,7 @@
 // arrange set of colour/texture definitions as THREE texture buffer
 // They behave like uniforms, only this mechanism allows a much larger set of values than uniforms do
 // the fields use .x, .y, .z, .w
-var THREE, updateGuiGenes;
+var THREE, updateGuiGenes, hsv2rgb;
 
 // PARMS is the number of distinct colour/texture parameters expected for one particular colourId
 // NUM is the number of distinct colourId values expected
@@ -125,6 +125,10 @@ COL.setx = function setx(list, low, high) {
     if (high === undefined) high = low;
     low = Math.max(low, list.start, 0);
     high = Math.min(high, list.end, COL.NUM - 1);
+    if (list.h !== undefined) {
+        list.col = hsv2rgb(list.h, list.s ?? 1, list.v ?? 1);
+        delete list.h; delete list.s; delete list.v; // so they are not used as prefix to eg zubband
+    }
 
     if (list.col || list.col1 || list.col2 || list.col3) {
         //    list = Object.assign({}, list);// safe copy
@@ -148,6 +152,9 @@ COL.setx = function setx(list, low, high) {
                     if (list.exclude && list.exclude.indexOf[r] !== -1) continue;   // can exclude, e.g. walls
                     if (typeof v === 'number') {
                         COL.set(coln, r, gamma ? v**gamma : v);        // fixed value for all
+                    } else if (typeof v === 'function') {
+                        const vv = v(r);
+                        COL.set(coln, r, gamma ? vv**gamma : vv);        // fixed value for all
                     } else {
                         let vv = COL.prand(r,coln) * (v[1] - v[0]) + v[0];
                         if (v[2]) vv = v[2](vv);
@@ -194,13 +201,22 @@ COL.getx = function(keys={'':0}, low, high) {
     return rr;
 }
 
-COL.defaultDef = {'': 0.0, red:1, band:1, gloss:0.8, plastic:0.5, shininess: 40, texsc:50, texrepeat: 1, texfract3d: 1, subb: -1};
+COL.defaultDef = {'': 0.0, red:1, band:1, gloss:0.3, plastic:0, shininess: 40, texsc:50, texrepeat: 1, texfract3d: 1, subb: -1};
+
+COL.huecols = function(l = 0, h = COL.NUM-1, sp = 1.7) {
+    for (let i = l; i <= h; i++) {
+        COL.setx(COL.defaultDef, i);
+        COL.setx({v: 1, bump:0, band1:9999, h: (i * sp) % 1, s: 1}, i);
+    }
+    COL.send();
+    COL.col2genes();
+}
 
 COL.randcols = function randcols(kk=0, opts = {}) {
     COL.seed(kk);
     var rr = [0, 1];
     var rr2 = [0, 1, x => x*x];
-    // COL.setx( {'': 9999} );
+    // COL.setx(  { '': 9999} );
     const defaults = {
         red: rr2, green: rr2, blue: rr2, refl: rr, band: rr, bandbetween: [0, 0.3], bumpstrength: rr,
         iridescence: [-0.4, 0.4], bumpscale: [0, 30],
@@ -369,6 +385,7 @@ COL.randcols2 = function(kk = 0, options = {}, colnum) {
     COL.setarr('red1', colnum, rcol(1));
     COL.setarr('red2', colnum, rcol(2));
     COL.setarr('red3', colnum, rcol(3));
+    COL.send();
 }
 
 /** set bold colours, originally from Tadpole */
@@ -381,6 +398,18 @@ COL.bold = function() {
         COL.setarr('red2', colnum, col);
         COL.setarr('red3', colnum, col);
     }
+}
+
+COL.boldlist = 'red yellow green cyan blue magenta white orange'.split(' ');
+/** set lots of bold colours */
+COL.manybold = function(low = 0, high = COL.NUM - 1) {
+    for (let i = low; i <= high; i++) {
+        COL.setx(COL.defaultDef, i);
+        COL.setx(COL.boldlist[i % 8], i)
+    }
+    // COL.setx({band1:100, band2:0, band3:0, 'irid': 0, bump: 0, flu: 0, subband: -1})
+    COL.send();
+    COL.col2genes();
 }
 
 /** return random integer range l..h-1, or 0..l-1 if h undefined */

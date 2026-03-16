@@ -2,7 +2,8 @@ import {} from './noiseGLSL.fs.js';
 import {} from './pohnoise.fs.js';
 
 if (window.adduniform) window.adduniform('g_hueshift', 0, 'f', 'gtex'); // for Organic
-if (window.addgene) window.addgene('noisetype', 1, 0, 3, 1, 1, 'noise type, 0 none, 1 Perlin, 2 poh, 3 winsom bandpass', 'gtex', 'frozen')
+if (window.addgene) window.addgene('noisetype', 3, 0, 3, 1, 1, 'noise type, 0 none, 1 Perlin, 2 poh, 3 winsom bandpass', 'gtex', 'frozen')
+// if (window.addgene) window.addgene('usehsv', 0, 0, 1, 1, 1, 'use hsv for colour input', 'gtex', 'frozen')
 
 window.THREE.ShaderChunk.O_texture = /*glsl*/`
 #ifndef TEXTUREDEFINED
@@ -120,8 +121,12 @@ genet(tex2dystretch, 1, 0, 100, 1, 10, texture, free) // amount to stretch 2d te
 
 // gene(g_hueshift, 0, 0, 1, 0.1, 0.1, texturex, frozen) //global colour shift to rotate colour scheme; if any rgb component of a colour is >1 hueshift is not applied
 uniform float g_hueshift;   // uniform is more hidden from end user, set by colour cycle
+gene(g_texscale, 1, 0, 10, 0.01, 0.01, texturex, frozen) // global texture scale (multiplies base values)
+gene(g_fluwidth, 1, 0, 10, 0.01, 0.01, texturex, frozen) // global fluwidth (multiplies base values)
 gene(g_huefix, 0, 0, 1, 0.01, 0.01, texturex, frozen) //fixed hue
 gene(g_huefixwidth, 1, 0, 1, 0.01, 0.01, texturex, frozen) // range around fixed hue
+gene(g_gloss, 1, 0, 2, 0.1, 0.01, texturex, frozen)    // global gloss override, 0 matt, 1 normal, 2 gloss and in betweens
+
 // gene(g_hueequalize, 1, 0, 1, 0.01, 0.01, texturex, frozen)   // equalize hues, 0 no equalization, 1 full
 // gene(g_huescurve, 1, 0, 1, 0.01, 0.01, texturex, frozen)     // applies scurve to modify hues, makes colour cycle less irregular
 // gene(g_hueconcentrate, 1, 0, 1, 0.1, 0.01, texturex, frozen) // concentrates hue by moving to 1/6 ponts
@@ -129,6 +134,7 @@ gene(g_huepunch, 1, 0, 5, 0.1, 0.1, texturex, frozen)           // applies power
 gene(g_huesat, 0, 0, 1, 0.1, 0.01, texturex, frozen)            // moves saturation towards full
 // not gene, as standalone TextureMaterial fixes genes
 uniform float noisetype;       // noise type, 0 none, 1 Perlin, 2 poh, 3 winsom bandpass
+// uniform float usehsv;
 
 
 gene(colSaturation, 1, 0, 10, 0.1, 0.01, texturex, frozen)   // control overall saturation, via power
@@ -283,7 +289,7 @@ vec3 bump(vec3 ttpos, vec3 mnormal) {
 	return bnorm;
 }
 
-
+#ifndef HSV2RGB
 //http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
 vec3 hsv2rgb(in vec3 c) {
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
@@ -300,6 +306,8 @@ vec3 rgb2hsv(in vec3 c) {
     float e = 1.0e-10;
     return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
 }
+#define HSV2RGB
+#endif
 float tpxx = 1.;  // shared texture lookup value, this will always be overwritten but the compiler could not see that so must initialize
 
 Colsurf colsurfd() { return colsurf(vec4(0.5,0.5,0.5,0), vec4(25, 0.6, -1, 0.5), vec4(0,0,0,0)); }
@@ -343,10 +351,11 @@ Colsurf standardTexcol(in vec3 texpos, float colourid, bool realLookup) {
     float bb3s = bb2e + tbbb;  // start of band 3
     // bb3e = 1
 
-	texpos /= max(texscale, 0.0001);
+    float utexscale = texscale * g_texscale;
+	texpos /= max(utexscale, 0.0001);
     float tp;
 	// tp = w(1., texpos.y) + w(2., texpos.x) + w(3., texpos.z);
-    NONU(if (texscale == 0. || texrepeat == 0.) {)
+    NONU(if (utexscale == 0. || texrepeat == 0.) {)
     NONU(    tpxx = 0.;)
     NONU(} else {)
         #if (OPMODE == OPTSHAPEPOS2COL || OPMODE == OPBUMPNORMAL)
@@ -367,10 +376,15 @@ Colsurf standardTexcol(in vec3 texpos, float colourid, bool realLookup) {
 		#ifdef NOTR // relevant to texalong/texaround/texribs only
 			colpos /= 1000.; // so it works at a similar scale to the objects
 		#endif
+        //#ifdef NOHORNMAKER
+        float dribs = 10.;
+        //#endif
+        //#define max3(x) max(max((x).x,(x).y),(x).z)
+
     // colpos *= 0.; // NOTR test
-        float xx =  floor(texalong * colpos.x + texaround * colpos.y + texribs * colpos.z / ribs);
-        xx +=  floor(texalong1 * colpos.x + texaround1 * colpos.y + texribs1 * colpos.z / ribs);
-        xx +=  floor(texalong2 * colpos.x + texaround2 * colpos.y + texribs2 * colpos.z / ribs);
+        float xx =  floor(texalong * colpos.x + texaround * colpos.y + texribs * colpos.z / dribs);
+        xx +=  floor(texalong1 * colpos.x + texaround1 * colpos.y + texribs1 * colpos.z / dribs);
+        xx +=  floor(texalong2 * colpos.x + texaround2 * colpos.y + texribs2 * colpos.z / dribs);
 		tpxx += fract(xx / texdiv);
         tpxx = fract(tpxx);
 		//tpxx -= 0.5;
@@ -421,6 +435,7 @@ virtual Colsurf iridescentTexcol(in vec3 texpos, in vec3 viewDir, in vec3 normal
 //c.g=1.;
 //c=vec3(1.,1.,1.);
     Colsurf r = standardTexcol(texpos);
+    // if (usehsv != 0.) r.col.rgb = hsv2rgb(r.col.rgb);
     float iridescence = r.fluoresc.a;
 
     if (iridescence != 0. || g_hueshift != 0. || g_huefixwidth != 1. || g_huesat != 0.) { // } || g_hueconcentrate != 0.) {

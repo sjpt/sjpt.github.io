@@ -59,20 +59,22 @@ function marchTestInit() {
     // controls.screenSpacePanning = false;
     window.addEventListener( 'resize', onWindowResize, false );
 
-    stats = new Stats();
-    stats.domElement.id = 'statsid';
-    stats.domElement.style.top = '0';
-    stats.domElement.style.right = '0';
-    stats.domElement.style.left = '';
-    stats.domElement.style.position = 'absolute';
-    document.body.appendChild( stats.domElement );
-
+    if (Stats) {
+        stats = new Stats();
+        stats.domElement.id = 'statsid';
+        stats.domElement.style.top = '0';
+        stats.domElement.style.right = '0';
+        stats.domElement.style.left = '';
+        stats.domElement.style.position = 'absolute';
+        document.body.appendChild( stats.domElement );
+    }
+    
     scene = new THREE.Scene();
     lightGroup = new THREE.Group();
     camera.add(lightGroup);
     scene.add(camera);
     lighta = new THREE.AmbientLight( 0xffffff, 0.1 ); lightGroup.add(lighta);
-    light = new THREE.DirectionalLight(THREE.Color.NAMES.white, 1); lightGroup.add(light)
+    light = new THREE.DirectionalLight(THREE.Color.NAMES.white, Math.PI); lightGroup.add(light); // nb intensity change for three lighting around rev 165
     light.position.set(0.6, 0.3, 1);
 
     marching = new Marching(isWebGL2);
@@ -155,7 +157,7 @@ function jstring(k) {
         function jrep (key, val) {
             return val && val.toFixed ? Number(val.toFixed(3)) : val;
         }, '<br>'
-    ).split('"').join('');
+    ).split('"').join('').split('<br><br>').join('');
 }
 
 function funkeyup(evt) {
@@ -166,7 +168,7 @@ function funkeyup(evt) {
 var sd = Date.now(), time = 0, speed = 0.1;
 function animate() {
     framenum++;
-    try {eval(window.code.value);} catch(e){}
+    try {eval(window.code.value);} catch(e){/**/}
     // X.funcode = window.funcode.value;
     window.funcode.style.background = X.funcode === window.funcode.value ? 'lightgreen' : 'lightpink';
 
@@ -191,7 +193,7 @@ function animate() {
         else if (X.doshade)
             renderer.render(scene, camera);                      // normal path
     }
-    stats.update();
+    if (stats) stats.update();
     window.msg.innerHTML = `${jstring(X)}`;
     marching.expose();                      // to help debug, overkill every frame, but just in case
 }
